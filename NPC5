@@ -1,0 +1,665 @@
+
+
+package gui;
+
+import java.awt.*;
+import java.awt.event.*;
+
+import java.io.*;
+import java.sql.*;
+import javax.swing.*;
+import jpcap.JpcapCaptor;
+import jpcap.NetworkInterface;
+import jpcap.packet.*;
+
+
+public class GUI extends JFrame{
+    
+    Object  [][] data,data1;
+    int choose,pktNo;
+    int count1 = 0,count2 = 0,count3 = 0,count4 = 0,count5 = 0;
+    String q1 = "a",q2 = "b",q3 = "c",q4 = "d",q5 = "e";
+    private JLabel label,label2,label3,label4,label5;
+    private JButton button,button2,button3,button4,button5;
+    private JTextField textField1,textField2;
+    private JTextField textField5,textField6,textField7,textField8,textField9;
+    private JTable table1,table;
+    private JPanel panel1,panel2,panel3,panel4,panel5,panel6;
+    private JCheckBox cBox1,cBox2,cBox3,cBox4,cBox5;
+    private JFrame frame; 
+    
+    public GUI(){
+        setLayout (new FlowLayout());
+        
+        panel1 = new JPanel();
+        panel1.setPreferredSize(new Dimension(180, 180));
+        panel1.setBackground(Color.LIGHT_GRAY);
+        add(panel1);
+        
+        panel2 = new JPanel();
+        panel2.setPreferredSize(new Dimension(300, 180));
+        panel2.setBackground(Color.LIGHT_GRAY);
+        add(panel2);
+        
+        panel3 = new JPanel();
+        panel3.setPreferredSize(new Dimension(360, 180));
+        panel3.setBackground(Color.LIGHT_GRAY);
+        add(panel3);
+        
+        panel4 = new JPanel();
+        panel4.setPreferredSize(new Dimension(180, 180));
+        panel4.setBackground(Color.LIGHT_GRAY);
+        add(panel4);
+        
+        button = new JButton("search interfaces");
+        panel1.add(button);
+        button.setPreferredSize(new Dimension(160, 30));
+        
+        event e = new event();
+        button.addActionListener(e);
+        
+        label2 = new JLabel("Interface Number : ");
+        panel2.add(label2);
+        label2.setPreferredSize(new Dimension(140, 30));
+        
+        textField1 =  new JTextField(10);
+        panel2.add(textField1);
+        
+        label3 = new JLabel("No Of Packets : ");
+        panel2.add(label3);
+        label3.setPreferredSize(new Dimension(140, 30));
+        
+        textField2 =  new JTextField(10);
+        panel2.add(textField2);
+        
+        button2 = new JButton("Capture And Save");
+        panel2.add(button2);
+        button2.setPreferredSize(new Dimension(180, 30));
+        
+        label5 = new JLabel("");
+        panel2.add(label5);
+       
+        event2 e2 = new event2();
+        button2.addActionListener(e2);
+        
+        button3 = new JButton("Get Packets And Query");
+        panel2.add(button3);
+        button3.setPreferredSize(new Dimension(180, 30));
+        
+        cBox1 = new JCheckBox("1. Source IP");
+        textField5 =  new JTextField(20);
+        cBox2 = new JCheckBox("2. Destination IP");
+        textField6 =  new JTextField(20);
+        cBox3 = new JCheckBox("3. Source port"); 
+        textField7 =  new JTextField(20);
+        cBox4 = new JCheckBox("4.Detination port");
+        textField8 =  new JTextField(20);
+        cBox5 = new JCheckBox("5. Packet Type");
+        textField9 =  new JTextField(20);
+        button4 = new JButton("Query");
+
+        
+        button5 = new JButton("Sheared All Bytes");
+     
+        label4 = new JLabel("");
+        
+        
+        event3 e3 = new event3();
+        button3.addActionListener(e3);
+               
+    }
+    
+    public class event implements ActionListener{
+        public void actionPerformed(ActionEvent e){
+            
+            NetworkInterface[] list;
+            list = JpcapCaptor.getDeviceList();
+      
+            for(int x=0; x<list.length; x++){
+   
+                label = new JLabel("");
+                panel1.add(label);
+                label.setFont(new Font("Arial",2 , 15));
+                label.setText((x+1) +". "+ list[x].description);
+                label.setPreferredSize(new Dimension(160, 30));
+            }
+        }
+    }
+    public class event2 implements ActionListener{
+        public void actionPerformed(ActionEvent e2){
+            
+            try {  
+                Class.forName("com.mysql.jdbc.Driver");
+                String connectionUrl = "jdbc:mysql://localhost/project?" + 
+                                       "user=root&password=";
+                Connection con = DriverManager.getConnection(connectionUrl);
+                
+                Statement stmt1=(Statement)con.createStatement();
+                String insert1="truncate packet";
+                stmt1.executeUpdate(insert1);
+                
+
+                try {
+                    choose = (int)Double.parseDouble(textField1.getText());
+                    pktNo = (int)Double.parseDouble(textField2.getText());
+
+                    NetworkInterface[] list2;
+                    list2 = JpcapCaptor.getDeviceList();
+                    JpcapCaptor captor;
+                    captor = JpcapCaptor.openDevice(list2[choose-1], 65535, false, 20);
+
+                    int ptno=0;
+
+                    while (ptno < pktNo){
+                        Packet packet = captor.getPacket();
+                         
+                        if(packet != null){
+                                
+                            // get type of packets
+                            String s = packet.getClass().toString();
+                            String arr[] = s.split(" ");
+                            String arr1[] = arr[1].split("\\."); 
+                            String pkttype = arr1[2];
+
+                           if(pkttype.equals("UDPPacket")){
+
+                                UDPPacket p = (UDPPacket)packet;
+
+                                // Get the tcp src and dest ports
+                                String destPort =""+ p.dst_port ;
+                                String srcPort =""+ p.src_port;
+
+                                // Get the src and dest IP addresses from the IP layer
+                                String srcIp = p.src_ip.toString();
+                                String dstIp = p.dst_ip.toString();
+
+                                int pktversion  = p.version;
+
+                                String dlp= p.datalink.toString();
+                                String [] strdlp = dlp.split(" ");
+                                String [] mac = strdlp[1].split("->");
+
+                                String srcmac = mac[0];
+                                String destmac = mac[1];
+
+                                int pktsize = p.len;
+                                int pktNo = (ptno+1);
+                                
+                                pkttype = "UDP";
+
+                                Statement stmt=(Statement)con.createStatement();
+                                String insert="INSERT INTO packet VALUES("+pktNo+",'"+pkttype+"','"+pktversion+"','"+srcIp+"','"+dstIp+"','"+srcPort+"','"+destPort+"','"+srcmac+"','"+destmac+"',"+pktsize+")";
+                                stmt.executeUpdate(insert);
+                                ptno++;
+
+                            }else if(pkttype.equals("TCPPacket")){
+
+                                TCPPacket p = (TCPPacket)packet;
+
+                                 // Get the tcp src and dest ports
+                                String destPort = "" + p.dst_port;
+                                String srcPort = "" + p.src_port;
+
+                                // Get the src and dest IP addresses from the IP layer
+                                String srcIp = p.src_ip.toString();
+                                String dstIp = p.dst_ip.toString();
+
+                                int pktversion  =  p.version;
+
+                                String dlp= p.datalink.toString();
+                                String [] strdlp = dlp.split(" ");
+                                String [] mac = strdlp[1].split("->");
+
+                                String srcmac = mac[0];
+                                String destmac = mac[1];                              
+
+                                int pktsize =  p.len;
+                                int pktNo = (ptno+1); 
+                                
+                                pkttype = "TCP";
+                                
+                                Statement stmt=(Statement)con.createStatement();
+                                String insert="INSERT INTO packet VALUES("+pktNo+",'"+pkttype+"','"+pktversion+"','"+srcIp+"','"+dstIp+"','"+srcPort+"','"+destPort+"','"+srcmac+"','"+destmac+"',"+pktsize+")";
+                                stmt.executeUpdate(insert);   
+                                ptno++;
+                            
+                            }else if(pkttype.equals("ARPPacket")){
+
+                                ARPPacket p = (ARPPacket)packet;
+
+                                // Get the tcp src and dest ports
+                                String destPort ="" ;
+                                String srcPort ="";
+
+                                // Get the src and dest IP addresses from the IP layer
+                                String srcIp = "";
+                                String dstIp = "";
+
+                                int pktversion = 0 ;
+
+                                String dlp= p.datalink.toString();
+                                String [] strdlp = dlp.split(" ");
+                                String [] mac = strdlp[1].split("->");
+
+                                String srcmac = mac[0];
+                                String destmac = mac[1];
+
+                                int pktsize = p.len;
+                                int pktNo = ptno+1;
+                                
+                                pkttype = "ARP";
+
+                                Statement stmt=(Statement)con.createStatement();
+                                String insert="INSERT INTO packet VALUES("+pktNo+",'"+pkttype+"','"+pktversion+"','"+srcIp+"','"+dstIp+"','"+srcPort+"','"+destPort+"','"+srcmac+"','"+destmac+"',"+pktsize+")";
+                                stmt.executeUpdate(insert);
+                                ptno++;
+
+                            }else if(arr1[2].equals("ICMPPacket")){
+
+                                ICMPPacket p = (ICMPPacket)packet;
+
+                                // Get the tcp src and dest ports
+                                String destPort ="" ;
+                                String srcPort ="";
+
+                                // Get the src and dest IP addresses from the IP layer
+                                String srcIp = p.src_ip.toString();
+                                String dstIp = p.dst_ip.toString();
+
+                                int pktversion  = p.version;
+
+                                String dlp= p.datalink.toString();
+                                String [] strdlp = dlp.split(" ");
+                                String [] mac = strdlp[1].split("->");
+
+                                String srcmac = mac[0];
+                                String destmac = mac[1];
+
+                                int pktsize = p.len;
+                                int pktNo = ptno+1;
+                                
+                                pkttype = "ICMP";
+
+                                Statement stmt=(Statement)con.createStatement();
+                                String insert="INSERT INTO packet VALUES("+pktNo+",'"+pkttype+"','"+pktversion+"','"+srcIp+"','"+dstIp+"','"+srcPort+"','"+destPort+"','"+srcmac+"','"+destmac+"',"+pktsize+")";
+                                stmt.executeUpdate(insert);
+                                ptno++;
+                            }else{}
+                        }
+                    }  
+                    label4.setText("Saved......");
+                    label4.setFont(new Font("Arial",2 , 30));
+                    panel2.add(label4);
+
+               }catch(IOException ioe) { ioe.printStackTrace(); }
+
+            } catch (SQLException e) {
+                System.out.println("SQL Exception: "+ e.toString());
+            } catch (ClassNotFoundException cE) {
+                System.out.println("Class Not Found Exception: "+ cE.toString());
+            }
+        }
+    }
+    
+    public class event3 implements ActionListener{
+        public void actionPerformed(ActionEvent e3){
+            
+            try {  
+                Class.forName("com.mysql.jdbc.Driver");
+                String connectionUrl = "jdbc:mysql://localhost/project?" + 
+                                       "user=root&password=";
+                Connection con = DriverManager.getConnection(connectionUrl);
+                
+                
+                panel3.add(cBox1);
+                cBox1.setPreferredSize(new Dimension(120, 23));
+                panel3.add(textField5);
+                panel3.add(cBox2);
+                cBox2.setPreferredSize(new Dimension(120, 23));
+                panel3.add(textField6);
+                panel3.add(cBox3);
+                cBox3.setPreferredSize(new Dimension(120, 23));
+                panel3.add(textField7);
+                panel3.add(cBox4);
+                cBox4.setPreferredSize(new Dimension(120, 23));
+                panel3.add(textField8);
+                panel3.add(cBox5);
+                cBox5.setPreferredSize(new Dimension(120, 23));
+                panel3.add(textField9);
+                panel3.add(button4);
+                panel4.add(button5);
+             
+                Statement st = con.createStatement();
+                ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet");
+                r.next();
+                int count = r.getInt("rowcount");
+                r.close();
+               
+                Statement st1 = con.createStatement();
+                ResultSet rs = st1.executeQuery("select * from packet");
+                
+                String [] colNames = {"pktNo","pktType","IPVersion", "srcIp", "dstIp", "srcPort", "destPort","srcMac","destMac","pktSize"};
+
+                int m = 0;
+               
+                data = new Object [count][10];
+               
+                while (rs.next()) {
+                    int pktNo = rs.getInt("pktNo");
+                    String pkttype = rs.getString("pktType");
+                    int pktversion = rs.getInt("pktVersion");
+                    String srcIp = rs.getString("srcIP");
+                    String dstIp = rs.getString("destIP");
+                    String srcPort = rs.getString("srcPort");
+                    String destPort = rs.getString("destPort");
+                    String srcmac = rs.getString("srcMac");
+                    String destmac = rs.getString("destMac");
+                    int pktsize = rs.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int j=0; j<10; j++){
+                                data[m][j] = details[j];                             
+                    } 
+                    m++;
+                }
+                
+                table1 = new JTable(data,colNames);
+                add(table1);
+                table1.setPreferredScrollableViewportSize(new Dimension (1100,420));
+                table1.setFillsViewportHeight(true);
+                
+                JScrollPane scrollPane = new JScrollPane(table1);
+                add(scrollPane);
+                
+                event4 e4 = new event4();
+                button4.addActionListener(e4);
+               
+                event5 e5 = new event5();
+                button5.addActionListener(e5);
+                
+
+            } catch (SQLException e) {
+                System.out.println("SQL Exception: "+ e.toString());
+            } catch (ClassNotFoundException cE) {
+                System.out.println("Class Not Found Exception: "+ cE.toString());
+            }
+        }
+    }
+    
+     public class event4 implements ActionListener{
+        public void actionPerformed(ActionEvent e4){
+            
+            
+            try{
+                
+                Class.forName("com.mysql.jdbc.Driver");
+                String connectionUrl = "jdbc:mysql://localhost/project?" + 
+                                       "user=root&password=";
+                Connection con = DriverManager.getConnection(connectionUrl);
+                
+                if (cBox1.isSelected()){
+                    q1 = textField5.getText();
+
+                    
+                    Statement st = con.createStatement();
+                    ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet where srcIp = '"+q1+"'");
+                    r.next();
+                    count1 = r.getInt("rowcount");
+                    r.close();
+                }
+                
+                if (cBox2.isSelected()){
+                    q2 = textField6.getText();
+                    
+                    Statement st = con.createStatement();
+                    ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet where destIp = '"+q2+"'");
+                    r.next();
+                    count2 = r.getInt("rowcount");
+                    r.close();
+                }
+                
+                if (cBox3.isSelected()){
+                    q3 = textField7.getText();
+                    
+                    Statement st = con.createStatement();
+                    ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet where srcPort = '"+q3+"'");
+                    r.next();
+                    count3 = r.getInt("rowcount");
+                    r.close();
+                }
+                
+                if (cBox4.isSelected()){
+                    q4 = textField8.getText();
+                    
+                    Statement st = con.createStatement();
+                    ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet where destPort = '"+q4+"'");
+                    r.next();
+                    count4 = r.getInt("rowcount");
+                    r.close();
+                }
+                
+                if (cBox5.isSelected()){
+                    q5 = textField9.getText();
+                    
+                    Statement st = con.createStatement();
+                    ResultSet r = st.executeQuery("SELECT COUNT(*) AS rowcount from packet where pktType = '"+q5+"'");
+                    r.next();
+                    count5 = r.getInt("rowcount");
+                    r.close();
+                }
+                
+                
+                
+                int tcount = count1 + count2 + count3 + count4 + count5;
+                int m = 0;
+                
+                data1 = new Object [tcount][10];
+                String [] colNames = {"pktNo","pktType","IPVersion", "srcIp", "dstIp", "srcPort", "destPort","srcMac","destMac","pktSize"};
+                
+                if (cBox1.isSelected()){
+                Statement stt = con.createStatement();              
+                ResultSet rs = stt.executeQuery("select * from packet where srcIp = '"+q1+"'");
+
+                while (rs.next()) {
+                    int pktNo = rs.getInt("pktNo");
+                    String pkttype = rs.getString("pktType");
+                    int pktversion = rs.getInt("pktVersion");
+                    String srcIp = rs.getString("srcIP");
+                    String dstIp = rs.getString("destIP");
+                    String srcPort = rs.getString("srcPort");
+                    String destPort = rs.getString("destPort");
+                    String srcmac = rs.getString("srcMac");
+                    String destmac = rs.getString("destMac");
+                    int pktsize = rs.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int k=0; k<10; k++){
+                                data1[m][k] = details[k];                             
+                    } 
+                    m++;
+                }
+                
+                rs.close();
+                }
+                
+                if (cBox2.isSelected()){
+                    System.out.println(m);
+                Statement stt2 = con.createStatement();  
+                ResultSet rs2 = stt2.executeQuery("select * from packet where destIp = '"+q2+"'");
+                
+                
+                while (rs2.next()) {
+                    int pktNo = rs2.getInt("pktNo");
+                    String pkttype = rs2.getString("pktType");
+                    int pktversion = rs2.getInt("pktVersion");
+                    String srcIp = rs2.getString("srcIP");
+                    String dstIp = rs2.getString("destIP");
+                    String srcPort = rs2.getString("srcPort");
+                    String destPort = rs2.getString("destPort");
+                    String srcmac = rs2.getString("srcMac");
+                    String destmac = rs2.getString("destMac");
+                    int pktsize = rs2.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int k=0; k<10; k++){
+                                data1[m][k] = details[k];                             
+                    } 
+                    m++;
+                }
+                
+                rs2.close();
+                }
+                if (cBox3.isSelected()){
+                    System.out.println(m);
+                Statement stt3 = con.createStatement();  
+                ResultSet rs3 = stt3.executeQuery("select * from packet where srcPort = '"+q3+"'");
+                
+                
+                while (rs3.next()) {
+                    int pktNo = rs3.getInt("pktNo");
+                    String pkttype = rs3.getString("pktType");
+                    int pktversion = rs3.getInt("pktVersion");
+                    String srcIp = rs3.getString("srcIP");
+                    String dstIp = rs3.getString("destIP");
+                    String srcPort = rs3.getString("srcPort");
+                    String destPort = rs3.getString("destPort");
+                    String srcmac = rs3.getString("srcMac");
+                    String destmac = rs3.getString("destMac");
+                    int pktsize = rs3.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int k=0; k<10; k++){
+                                data1[m][k] = details[k];                             
+                    } 
+                    m++;
+                }
+                
+                rs3.close();
+                }
+                if (cBox4.isSelected()){
+                    System.out.println(m);
+                Statement stt4 = con.createStatement();  
+                ResultSet rs4 = stt4.executeQuery("select * from packet where destPort = '"+q4+"'");
+                
+                
+                while (rs4.next()) {
+                    int pktNo = rs4.getInt("pktNo");
+                    String pkttype = rs4.getString("pktType");
+                    int pktversion = rs4.getInt("pktVersion");
+                    String srcIp = rs4.getString("srcIP");
+                    String dstIp = rs4.getString("destIP");
+                    String srcPort = rs4.getString("srcPort");
+                    String destPort = rs4.getString("destPort");
+                    String srcmac = rs4.getString("srcMac");
+                    String destmac = rs4.getString("destMac");
+                    int pktsize = rs4.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int k=0; k<10; k++){
+                                data1[m][k] = details[k];                             
+                    } 
+                    m++;
+                
+                }
+                rs4.close();
+                }
+                
+                if (cBox5.isSelected()){
+
+                Statement stt5 = con.createStatement();  
+                ResultSet rs5 = stt5.executeQuery("select * from packet where pktType = '"+q5+"'");
+                
+                
+                while (rs5.next()) {
+                    int pktNo = rs5.getInt("pktNo");
+                    String pkttype = rs5.getString("pktType");
+                    int pktversion = rs5.getInt("pktVersion");
+                    String srcIp = rs5.getString("srcIP");
+                    String dstIp = rs5.getString("destIP");
+                    String srcPort = rs5.getString("srcPort");
+                    String destPort = rs5.getString("destPort");
+                    String srcmac = rs5.getString("srcMac");
+                    String destmac = rs5.getString("destMac");
+                    int pktsize = rs5.getInt("pktSize");
+
+                    Object [] details = {pktNo, pkttype,pktversion, srcIp, dstIp, srcPort, destPort,srcmac,destmac,pktsize};
+
+                    for (int k=0; k<10; k++){
+                                data1[m][k] = details[k];                             
+                    } 
+                    m++;
+                }
+                
+                rs5.close();
+                }
+                
+                table = new JTable(data1,colNames);
+                JScrollPane scrollPane = new JScrollPane(table);
+                add(scrollPane);
+                frame = new JFrame("Packets From A IP");
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                Container c = frame.getContentPane();
+                c.setBackground(Color.YELLOW);
+                Dimension d = new Dimension(1200,600);
+                c.setPreferredSize(d);
+                frame.pack();
+                frame.setResizable(false);
+                frame.setVisible(true);
+                frame.add(table);
+                frame.getContentPane().add(new JScrollPane(table));
+                frame.setVisible(true);
+            
+                
+            } catch (SQLException e) {
+                System.out.println("SQL Exception: "+ e.toString());
+            } catch (ClassNotFoundException cE) {
+                System.out.println("Class Not Found Exception: "+ cE.toString());
+            }
+       }
+    }
+    
+    public class event5 implements ActionListener{
+        public void actionPerformed(ActionEvent e5){
+            
+            panel4.add(label4);
+            try {  
+                Class.forName("com.mysql.jdbc.Driver");
+                String connectionUrl = "jdbc:mysql://localhost/project?" + 
+                                       "user=root&password=";
+                Connection con = DriverManager.getConnection(connectionUrl);
+                Statement stt = con.createStatement();  
+                ResultSet rs = stt.executeQuery("select pktSize from packet");
+                
+                int sum = 0;
+                while (rs.next()){
+                    sum = sum + rs.getInt("pktSize");
+                }
+                rs.close();
+                label4.setText("" + sum + " Bytes");
+                label4.setFont(new Font("Arial",2 , 30));
+                
+            } catch (SQLException e) {
+                System.out.println("SQL Exception: "+ e.toString());
+            } catch (ClassNotFoundException cE) {
+                System.out.println("Class Not Found Exception: "+ cE.toString());
+            }
+            
+        }
+    }
+       
+   public static void main(String[] args) {
+        GUI gui = new GUI();
+        gui.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        gui.setVisible(true);
+        gui.pack();
+        gui.setSize(1200, 700);
+        gui.setTitle("Caputure Machine");
+    }
+    
+}
+
